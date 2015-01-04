@@ -48,6 +48,7 @@ v 0.8    Added IR retransmit as proxy
 #include <OneWire.h> // http://www.pjrc.com/teensy/arduino_libraries/OneWire.zip
 #include <DallasTemperature.h> // http://download.milesburton.com/Arduino/MaximTemperature/DallasTemperature_LATEST.zip
 #include <dht.h> // http://playground.arduino.cc/Main/DHTLib#.UyMXevldWCQ
+#include <PimaticProbe.h>
 
 // Define vars
 #define DHT11_PIN 9
@@ -62,6 +63,8 @@ int BytesData[30];
 int ledPinR = 6;    // Red LED connected to digital pin 6
 int ledPinB = 11;    // Blue LED connected to digital pin 5
 int ledPinG = 10;    // Green LED connected to digital pin 4
+
+PimaticProbe probe = PimaticProbe(senderPin, codeKit);
 
 // Set to 1 for serial output
 boolean debug = 1;
@@ -129,10 +132,6 @@ void setup()
       }
     }
   }
-
-
-  // Convert Probe ID to binair
-  buildSignal();
 }
 
 void loop()
@@ -161,16 +160,16 @@ void loop()
       SendTemp = temperature * 100;
       if (debug) {
         Serial.println(SendTemp);
-      }        
-      transmit(true, SendTemp, BytesType, 6); 
+      }
+	  probe.transmit(true, SendTemp, BytesType, 6);
     }
     
     if (temperature < 0.0) {
       SendTemp = (temperature * 100) * -1;
       if (debug) {
         Serial.println(SendTemp);
-      }      
-      transmit(false, SendTemp, BytesType, 6);
+      }
+      probe.transmit(false, SendTemp, BytesType, 6);
     }
     
 
@@ -194,7 +193,7 @@ void loop()
       if (debug) {
         Serial.println(CounterValue);
       }            
-      transmit(true, CounterValue, BytesType, 6);
+      probe.transmit(true, CounterValue, BytesType, 6);
       break;
     }
     DHT11_i = 0;    
@@ -210,144 +209,6 @@ void loop()
     Serial.print("End of loop, sleep.\n\n");
   }  
   delay(LoopDelay);
-}
-  
-void itob(unsigned long integer, int length)
-{  
- for (int i=0; i<length; i++){
-   if ((integer / power2(length-1-i))==1){
-     integer-=power2(length-1-i);
-     Bytes[i]=1;
-   }
-   else Bytes[i]=0;
- }
-}
-
-void itobCounter(unsigned long integer, int length)
-{  
- for (int i=0; i<length; i++){
-   if ((integer / power2(length-1-i))==1){
-     integer-=power2(length-1-i);
-     BytesData[i]=1;
-   }
-   else BytesData[i]=0;
- }
-}
-
-unsigned long power2(int power){    //gives 2 to the (power)
- unsigned long integer=1;          
- for (int i=0; i<power; i++){      
-   integer*=2;
- }
- return integer;
-}
-
-/**
- * Crée notre signal sous forme binaire
-**/
-void buildSignal()
-{
-  if (debug) {
-    Serial.print("Probe ID: ");  
-    Serial.println(codeKit);
-  }
-  // Converti les codes respectifs pour le signal en binaire
-  if (debug) {
-    Serial.print("Probe ID binair: ");
-  }
-  itob(codeKit, 14);
-  for(int j=0;j < 14; j++){
-    if (debug) {
-      Serial.print(Bytes[j]);
-    }
-  }
-  if (debug) {
-    Serial.print("\n\n");
-  }
-}
-
-
-// Convert 0 in 01 and 1 in 10 (Manchester conversion)
-void sendPair(bool b) {
- if(b)
- {
-   sendBit(true);
-   sendBit(false);
- }
- else
- {
-   sendBit(false);
-   sendBit(true);
- }
-}
-
-//Envois d'une pulsation (passage de l'etat haut a l'etat bas)
-//1 = 310µs haut puis 1340µs bas
-//0 = 310µs haut puis 310µs bas
-void sendBit(bool b) {
- if (b) {
-   digitalWrite(senderPin, HIGH);
-   delayMicroseconds(650);   //506 orinally, but tweaked.
-   digitalWrite(senderPin, LOW);
-   delayMicroseconds(2024);  //1225 orinally, but tweaked.
- }
- else {
-   digitalWrite(senderPin, HIGH); 
-   delayMicroseconds(650);   //506 orinally, but tweaked.
-   digitalWrite(senderPin, LOW);
-   delayMicroseconds(4301);   //305 orinally, but tweaked.
- }
-}
-
-/** 
- * Transmit data
- * @param boolean  positive : if the value you send is a positive or negative one
- * @param long Counter : the value you want to send
- **/
-void transmit(boolean positive, unsigned long Counter, int BytesType[], int repeats)
-{
- if (debug) {
-   Serial.print("\t");
- }   
- int ii;
- for(ii=0; ii<repeats;ii++)
- {
-  if (debug) {
-    Serial.print(" . ");
-  }    
-  int i;
-  itobCounter(Counter, 30);
-
-  // Send the unique ID of your Arduino node
-  for(i=0; i<14;i++)
- {
-  sendPair(Bytes[i]);
- }
-
-  // Send protocol type
- for(int j = 0; j<4; j++)
- {
-  sendPair(BytesType[j]);
- }
-
- // Send the flag to mark the value as positive or negative
- sendPair(positive);
-
- // Send value (ie your counter)
- for(int j = 0; j<30; j++)
- {
-   sendPair(BytesData[j]);
- }
-
- // Send the flag "End of the transmission"
- digitalWrite(senderPin, HIGH);
- delayMicroseconds(650);     
- digitalWrite(senderPin, LOW);
- delayMicroseconds(8602);
- }
- if (debug) {
-   Serial.print("\n");
- }    
 }
 
 // Callback function is called only when a valid code is received.
