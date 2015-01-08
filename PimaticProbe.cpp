@@ -4,6 +4,7 @@
 
 int SystemcodeBytes[30];
 int DataBytes[30];
+int TypeBytes[4];
 int senderPin;
 
 PimaticProbe::PimaticProbe(int transmitPin, int systemcode)
@@ -40,10 +41,12 @@ unsigned long PimaticProbe::power2(int power)
 	return integer;
 }
 
-void PimaticProbe::transmit(bool positive, unsigned long Counter, int BytesType[], int repeats)
+void PimaticProbe::transmit(bool positive, unsigned long Counter, int Type, int repeats)
 {
 	//get Bytes for Data
 	itob(Counter, 30, DataBytes);
+	//get Bytes for Type
+	itob(Type, 4, TypeBytes);
 	int ii;
 	for(ii=0; ii<repeats;ii++)
 	{
@@ -57,7 +60,7 @@ void PimaticProbe::transmit(bool positive, unsigned long Counter, int BytesType[
 		// Send protocol type
 		for(int j = 0; j<4; j++)
 		{
-			sendPair(BytesType[j]);
+			sendPair(TypeBytes[j]);
 		}
 
 		// Send the flag to mark the value as positive or negative

@@ -143,9 +143,7 @@ void loop()
   if (DS18B20 == DS18B20_i) {
     if (debug) {
       Serial.print("DS18B20\n");
-    }  
-    // Read DS18B20 and transmit value as sensor 1
-    int BytesType[] = {0,0,0,1};
+    }
 
     sensors.requestTemperatures(); // Get the temperature
     float temperature = sensors.getTempCByIndex(0); // Get temperature in Celcius
@@ -161,7 +159,7 @@ void loop()
       if (debug) {
         Serial.println(SendTemp);
       }
-	  probe.transmit(true, SendTemp, BytesType, 6);
+	  probe.transmit(true, SendTemp, 1, 6);
     }
     
     if (temperature < 0.0) {
@@ -169,7 +167,7 @@ void loop()
       if (debug) {
         Serial.println(SendTemp);
       }
-      probe.transmit(false, SendTemp, BytesType, 6);
+      probe.transmit(false, SendTemp, 1, 6);
     }
     
 
@@ -189,11 +187,10 @@ void loop()
       case DHTLIB_OK:
       float humfloat = DHT.humidity;
       int CounterValue = humfloat * 10;
-      int BytesType[] = {0,0,1,0};
       if (debug) {
         Serial.println(CounterValue);
       }            
-      probe.transmit(true, CounterValue, BytesType, 6);
+      probe.transmit(true, CounterValue, 2, 6);
       break;
     }
     DHT11_i = 0;    
