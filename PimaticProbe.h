@@ -13,4 +13,8 @@ class PimaticProbe
 		unsigned long power2(int power);
 		void sendPair(bool b);
 		void sendBit(bool b);
+		int SystemcodeBytes[30];
+		int DataBytes[30];
+		int TypeBytes[4];
+		int senderPin;
 };
